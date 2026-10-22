@@ -96,12 +96,14 @@ export async function uploadDeck(gate, deck) {
   if (commanderIds[0]) createBody.commanderCardId = commanderIds[0];
   if (commanderIds[1]) createBody.partnerCardId = commanderIds[1];
 
+  // Moxfield answers isSuccessful:false here because 0 cards were imported (the
+  // deck is created empty on purpose), so the deck id is what proves it worked.
   const created = await mox(gate, "POST", "/v3/decks", createBody);
-  const made = created.data && created.data.deck;
-  if (!created.ok || !made || created.data.isSuccessful === false || !/^[\w-]+$/.test(String(made.publicId || ""))) {
+  const made = (created.data && created.data.deck) || {};
+  const publicId = String(made.publicId || (created.data && created.data.publicId) || "");
+  if (!created.ok || !/^[\w-]+$/.test(publicId)) {
     throw new UserError(MSG.createFailed);
   }
-  const publicId = String(made.publicId);
   const publicUrl =
     typeof made.publicUrl === "string" && made.publicUrl.startsWith("https://")
       ? made.publicUrl
