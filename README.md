@@ -9,3 +9,5 @@ account. Free for everyone.
 
 Moxfield access is used with Moxfield's permission and kept under their rate limit
 (at most 1 request per second). No secrets are stored in this repository.
+
+The helper is deployed automatically by Cloudflare whenever `main` changes on GitHub.
