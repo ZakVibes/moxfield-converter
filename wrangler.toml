@@ -1,6 +1,6 @@
 # Cloudflare settings for the helper server. Cloudflare reads this file when it
-# deploys from GitHub. Secrets (the user-agent, cookies) are NOT in here - they
-# live only in Cloudflare's dashboard.
+# deploys from GitHub. Secrets (MOX_USER_AGENT, MOX_REFRESH_COOKIE) are NOT in
+# here - they live only in Cloudflare's dashboard.
 name = "moxfield-converter"
 main = "worker/index.js"
 compatibility_date = "2026-10-01"
@@ -8,3 +8,17 @@ workers_dev = true
 
 [observability]
 enabled = true
+
+# The single "gate" object that makes every Moxfield call, one per second.
+[[durable_objects.bindings]]
+name = "MOX_GATE"
+class_name = "MoxGate"
+
+# SQLite-backed Durable Objects are the kind the Free plan allows.
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["MoxGate"]
+
+# Every Monday 06:00 UTC: refresh the Moxfield sign-in so it never expires.
+[triggers]
+crons = ["0 6 * * 1"]
