@@ -1,0 +1,10 @@
+# Cloudflare settings for the helper server. Cloudflare reads this file when it
+# deploys from GitHub. Secrets (the user-agent, cookies) are NOT in here - they
+# live only in Cloudflare's dashboard.
+name = "moxfield-converter"
+main = "worker/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[observability]
+enabled = true

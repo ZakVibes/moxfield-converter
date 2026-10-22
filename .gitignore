@@ -1,0 +1,8 @@
+# Never commit secrets or local junk.
+*.env
+.env*
+.dev.vars*
+node_modules/
+.wrangler/
+_tmp*
+*.log
