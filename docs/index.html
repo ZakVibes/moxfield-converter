@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Put your list on Mox</title>
+<meta name="description" content="Paste an Archidekt or ManaBox deck link and get back a Moxfield deck link.">
+<meta name="color-scheme" content="light dark">
+<style>
+/* ---------- Colours: "mana parchment" (light) ---------- */
+:root {
+  --page: #f4ecd8;
+  --card: #f4ecd8;
+  --card-border: #d9c9a3;
+  --text: #3b2f1e;
+  --muted: #7a6647;
+  --title: #3b2f1e;
+  --input-bg: #fffaf0;
+  --input-border: #cdb98d;
+  --btn: #7b3f1d;
+  --btn-text: #fff4e0;
+  --warn: #9a3b1f;
+  --ok: #3f6b2f;
+  --art-frame: #3b2f1e;
+  --pip-w: #f8f3d6;  --pip-w-line: #c9b98a;
+  --pip-u: #6fa8dc;  --pip-u-line: transparent;
+  --pip-b: #3d3a36;  --pip-b-line: transparent;
+  --pip-r: #d9573b;  --pip-r-line: transparent;
+  --pip-g: #5f9e57;  --pip-g-line: transparent;
+  --focus: #7b3f1d;
+  --spinner: #7b3f1d;
+}
+
+/* ---------- Colours: "leather and gold" (dark) ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #2a1d14;
+    --card: #35261a;
+    --card-border: #5a412b;
+    --text: #f1e3c2;
+    --muted: #c2a77a;
+    --title: #e2b85c;
+    --input-bg: #1d140d;
+    --input-border: #6b4f33;
+    --btn: #c9973f;
+    --btn-text: #2a1d14;
+    --warn: #f0997b;
+    --ok: #9cc98a;
+    --art-frame: #c9973f;
+    --pip-b: #141210;  --pip-b-line: #6b5a45;
+    --focus: #e2b85c;
+    --spinner: #e2b85c;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 32px 16px;
+  background: var(--page);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+main { max-width: 640px; margin: 0 auto; }
+
+/* ---------- Header ---------- */
+h1 {
+  margin: 0 0 6px;
+  font: 700 clamp(28px, 7vw, 38px)/1.15 Georgia, "Times New Roman", serif;
+  color: var(--title);
+}
+.tagline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 0 0 24px; color: var(--muted); }
+.pips { display: flex; gap: 4px; }
+.pip { width: 14px; height: 14px; border-radius: 50%; border: 1px solid transparent; }
+.pip.w { background: var(--pip-w); border-color: var(--pip-w-line); }
+.pip.u { background: var(--pip-u); border-color: var(--pip-u-line); }
+.pip.b { background: var(--pip-b); border-color: var(--pip-b-line); }
+.pip.r { background: var(--pip-r); border-color: var(--pip-r-line); }
+.pip.g { background: var(--pip-g); border-color: var(--pip-g-line); }
+.demo-tag { font-size: 12px; color: var(--muted); border: 1px dashed var(--input-border); border-radius: 6px; padding: 1px 8px; }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+/* ---------- Form ---------- */
+.row { display: flex; gap: 10px; }
+.row input { flex: 1; min-width: 0; }
+input[type="text"] {
+  font: inherit;
+  padding: 11px 12px;
+  background: var(--input-bg);
+  color: var(--text);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+}
+input::placeholder { color: var(--muted); opacity: .8; }
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 11px 20px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+button.primary { background: var(--btn); color: var(--btn-text); }
+button.secondary { background: transparent; color: var(--text); border-color: var(--input-border); }
+button.link { background: none; color: var(--muted); padding: 6px 0; text-decoration: underline; font-weight: 400; }
+button:disabled, input:disabled { opacity: .6; cursor: not-allowed; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.error { color: var(--warn); margin: 8px 0 0; }
+.error:empty { display: none; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ---------- Progress steps ---------- */
+.steps { list-style: none; margin: 0; padding: 0; }
+.steps li { display: flex; align-items: center; gap: 10px; padding: 4px 0; color: var(--muted); }
+.steps li[data-state="active"] { color: var(--text); font-weight: 600; }
+.steps li[data-state="done"] { color: var(--text); }
+.steps li[data-state="error"] { color: var(--warn); font-weight: 600; }
+.icon { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; flex: none; font-weight: 700; }
+.icon::before { content: ""; }
+[data-state="waiting"] .icon::before { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); opacity: .6; }
+[data-state="active"] .icon::before {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--input-border); border-top-color: var(--spinner);
+  animation: spin .8s linear infinite;
+}
+[data-state="done"] .icon { color: var(--ok); }
+[data-state="done"] .icon::before { content: "\2713"; }
+[data-state="error"] .icon { color: var(--warn); }
+[data-state="error"] .icon::before { content: "\2715"; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { [data-state="active"] .icon::before { animation-duration: 2.4s; } }
+.note { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.note:empty { display: none; }
+.err-box { color: var(--warn); font-weight: 600; margin: 14px 0 0; }
+
+/* ---------- Result ---------- */
+.deck { display: flex; gap: 16px; align-items: center; }
+.art {
+  width: 64px; height: 64px; flex: none;
+  border: 3px solid var(--art-frame); border-radius: 10px; overflow: hidden;
+}
+.art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.deck h2 { margin: 0; font: 700 24px/1.2 Georgia, "Times New Roman", serif; overflow-wrap: anywhere; }
+.summary { margin: 2px 0 0; color: var(--muted); font-size: 15px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.actions a.primary {
+  display: inline-block; text-decoration: none; font-weight: 600;
+  padding: 11px 20px; border-radius: 8px; background: var(--btn); color: var(--btn-text);
+}
+.link-text { margin: 12px 0 0; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+.warn { color: var(--warn); margin: 14px 0 0; }
+details { margin-top: 6px; font-size: 15px; }
+summary { cursor: pointer; color: var(--warn); }
+details ul { margin: 6px 0 0; padding-left: 22px; color: var(--muted); }
+.muted-line { margin: 8px 0 0; font-size: 14px; color: var(--muted); }
+.again { margin-top: 12px; }
+
+footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
+footer a { color: inherit; }
+
+[hidden] { display: none !important; }
+
+/* ---------- Phones: stack input and button ---------- */
+@media (max-width: 480px) {
+  body { padding: 24px 16px; }
+  .row { flex-direction: column; }
+  .row button { width: 100%; }
+  .actions > * { flex: 1 1 100%; text-align: center; }
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>Put your list on Mox</h1>
+  <p class="tagline">
+    <span class="pips" aria-hidden="true">
+      <span class="pip w"></span><span class="pip u"></span><span class="pip b"></span><span class="pip r"></span><span class="pip g"></span>
+    </span>
+    <span>Bring any deck over to Moxfield</span>
+    <span class="demo-tag" id="demoTag" hidden>Demo mode</span>
+  </p>
+
+  <!-- Input form -->
+  <form class="card" id="form" novalidate>
+    <label class="sr-only" for="url">Deck link</label>
+    <div class="row">
+      <input type="text" id="url" placeholder="Paste a ManaBox or Archidekt link"
+             autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url"
+             aria-describedby="formError">
+      <button type="submit" class="primary" id="go">Convert</button>
+    </div>
+    <p class="error" id="formError" role="alert"></p>
+  </form>
+
+  <!-- Progress and result live here; screen readers hear changes politely -->
+  <div id="live" aria-live="polite">
+    <section class="card" id="progress" hidden>
+      <ol class="steps">
+        <li data-step="read" data-state="waiting"><span class="icon"></span>Read deck</li>
+        <li data-step="convert" data-state="waiting"><span class="icon"></span>Convert</li>
+        <li data-step="upload" data-state="waiting"><span class="icon"></span>Upload to Moxfield</li>
+      </ol>
+      <p class="note" id="queueNote"></p>
+      <p class="err-box" id="errBox" hidden></p>
+      <button type="button" class="link again" id="retry" hidden>Try again</button>
+    </section>
+
+    <section class="card" id="result" hidden>
+      <div class="deck">
+        <div class="art" id="art" hidden><img id="artImg" alt=""></div>
+        <div>
+          <h2 id="deckName"></h2>
+          <p class="summary" id="deckSummary"></p>
+        </div>
+      </div>
+      <div class="actions">
+        <a class="primary" id="openLink" href="#" target="_blank" rel="noopener">Open on Moxfield</a>
+        <button type="button" class="secondary" id="copy">Copy link</button>
+      </div>
+      <p class="link-text" id="linkText"></p>
+      <div id="notFoundBox" hidden>
+        <p class="warn" id="notFoundHead"></p>
+        <details><summary>Show the list</summary><ul id="notFoundList"></ul></details>
+      </div>
+      <div id="warnings"></div>
+      <button type="button" class="link again" id="another">Convert another deck</button>
+    </section>
+  </div>
+
+  <footer>
+    Decks are posted unlisted on the <a href="https://moxfield.com/users/PutYourListOnMoxPlease" target="_blank" rel="noopener">PutYourListOnMoxPlease</a> Moxfield account. Not affiliated with Moxfield, Archidekt, or ManaBox.
+  </footer>
+</main>
+
+<script>
+"use strict";
+
+// ---------- Settings ----------
+// Server address. For testing, add ?api=<url> to the page address.
+const params = new URLSearchParams(location.search);
+const API = params.get("api") || "https://moxfield-converter.zakcrane38.workers.dev";
+// Demo mode: ?demo, ?demo=ok, ?demo=error, ?demo=slow
+const DEMO = params.has("demo") ? (params.get("demo") || "ok") : null;
+
+const GENERIC_ERROR = "Couldn't reach the converter. Try again in a minute.";
+const LINK_PATTERN = /^(https?:\/\/)?(www\.)?(archidekt\.com\/decks\/\d+|manabox\.app\/decks\/[\w-]+)/i;
+
+// ---------- Page elements ----------
+const $ = (id) => document.getElementById(id);
+const form = $("form"), urlInput = $("url"), goBtn = $("go"), formError = $("formError");
+const progress = $("progress"), queueNote = $("queueNote"), errBox = $("errBox"), retryBtn = $("retry");
+const result = $("result");
+const stepEls = {};
+document.querySelectorAll("[data-step]").forEach((li) => { stepEls[li.dataset.step] = li; });
+
+let running = false;     // true while a conversion is in progress
+let finished = false;    // true once a result or error event arrived
+let currentStep = null;  // the step that is currently active
+let copyTimer = null;
+
+if (DEMO) $("demoTag").hidden = false;
+
+// ---------- Small helpers ----------
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function setStep(step, state) {
+  const li = stepEls[step];
+  if (!li) return;
+  li.dataset.state = state;
+  if (state === "active") currentStep = step;
+}
+
+function setRunning(on) {
+  running = on;
+  urlInput.disabled = on;
+  goBtn.disabled = on;
+  goBtn.textContent = on ? "Converting…" : "Convert";
+}
+
+function resetView() {
+  Object.keys(stepEls).forEach((s) => setStep(s, "waiting"));
+  currentStep = null;
+  finished = false;
+  queueNote.textContent = "";
+  errBox.hidden = true;
+  errBox.textContent = "";
+  retryBtn.hidden = true;
+  progress.hidden = true;
+  result.hidden = true;
+}
+
+// ---------- Event handler: used by BOTH the real server and demo mode ----------
+function handleEvent(ev) {
+  if (!ev || typeof ev !== "object") return;
+  if (ev.type === "step") {
+    setStep(ev.step, ev.state);
+  } else if (ev.type === "queue") {
+    const n = Number(ev.ahead) || 0;
+    queueNote.textContent = n > 0
+      ? "Waiting for " + n + " other conversion" + (n === 1 ? "" : "s") + "…"
+      : "";
+  } else if (ev.type === "result") {
+    finished = true;
+    queueNote.textContent = "";
+    showResult(ev.deck || {});
+  } else if (ev.type === "error") {
+    showError(ev.message || GENERIC_ERROR);
+  }
+}
+
+function showError(message) {
+  finished = true;
+  // Mark the step that was running as failed (if none is failed already)
+  const alreadyFailed = Object.values(stepEls).some((li) => li.dataset.state === "error");
+  if (!alreadyFailed) setStep(currentStep || "read", "error");
+  queueNote.textContent = "";
+  errBox.textContent = message;
+  errBox.hidden = false;
+  retryBtn.hidden = false;
+  setRunning(false);
+}
+
+function showResult(deck) {
+  const c = deck.counts || {};
+  const commanders = (deck.commanders || []).join(" + ");
+  const parts = [];
+  if (commanders) parts.push(commanders);
+  parts.push((c.mainboard || 0) + " cards");
+  if (c.sideboard > 0) parts.push(c.sideboard + " sideboard");
+  if (c.maybeboard > 0) parts.push(c.maybeboard + " maybeboard");
+  parts.push(deck.visibility || "unlisted");
+
+  $("deckName").textContent = deck.name || "Your deck";
+  $("deckSummary").textContent = parts.join(" · ");
+
+  // Art thumbnail: hide the whole box if there is no image or it fails to load
+  const art = $("art"), img = $("artImg");
+  art.hidden = true;
+  img.onload = () => { art.hidden = false; };
+  img.onerror = () => { art.hidden = true; };
+  if (deck.artUrl) img.src = deck.artUrl; else img.removeAttribute("src");
+
+  // Links
+  $("openLink").href = deck.url || "#";
+  $("linkText").textContent = deck.url || "";
+  $("copy").textContent = "Copy link";
+
+  // Cards Moxfield didn't know
+  const nf = deck.notFound || [];
+  const list = $("notFoundList");
+  list.textContent = "";
+  $("notFoundBox").hidden = nf.length === 0;
+  if (nf.length) {
+    $("notFoundHead").textContent = nf.length + " card" + (nf.length === 1 ? "" : "s") + (nf.length === 1 ? " wasn't" : " weren't") + " found on Moxfield";
+    nf.forEach((card) => {
+      const li = document.createElement("li");
+      li.textContent = card.name + (card.board ? " (" + card.board + ")" : "");
+      list.appendChild(li);
+    });
+  }
+
+  // Server warnings
+  const w = $("warnings");
+  w.textContent = "";
+  (deck.warnings || []).forEach((text) => {
+    const p = document.createElement("p");
+    p.className = "muted-line";
+    p.textContent = text;
+    w.appendChild(p);
+  });
+
+  progress.hidden = true;
+  result.hidden = false;
+  setRunning(false);
+}
+
+// ---------- Real server: read streaming NDJSON ----------
+async function runReal(link) {
+  let res;
+  try {
+    res = await fetch(API + "/api/convert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: link }),
+    });
+  } catch (e) {
+    return; // network failure: the caller shows the generic message
+  }
+  if (!res.body) return;
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  // Parse one line; lines that are not JSON are ignored
+  const handleLine = (line) => {
+    line = line.trim();
+    if (!line) return;
+    let ev;
+    try { ev = JSON.parse(line); } catch (e) { return; }
+    handleEvent(ev);
+  };
+
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // the last piece may be half a line: keep it
+      lines.forEach(handleLine);
+    }
+    buffer += decoder.decode();
+    handleLine(buffer);
+  } catch (e) {
+    // stream broke: handled by the caller as "no result"
+  }
+}
+
+// ---------- Demo mode: fake the same events ----------
+const DEMO_DECK = {
+  name: "RogSi",
+  url: "https://moxfield.com/decks/G5Io4yhvWUuWpHr6ZukZqw",
+  publicId: "G5Io4yhvWUuWpHr6ZukZqw",
+  commanders: ["Rograkh, Son of Rohgahh", "Silas Renn, Seeker Adept"],
+  format: "commander",
+  visibility: "unlisted",
+  counts: { mainboard: 100, sideboard: 5, maybeboard: 10, companions: 0 },
+  artUrl: "https://cards.scryfall.io/art_crop/front/6/5/65f94f1d-d1d2-4f19-9e75-81c2a3b7a3bd.jpg",
+  source: "archidekt",
+  notFound: [{ name: "Demonic Counsel", board: "sideboard" }],
+  warnings: [],
+};
+
+async function runDemo(mode) {
+  const pause = () => wait(700 + Math.random() * 800);
+  if (mode === "slow") {
+    handleEvent({ type: "queue", ahead: 1 });
+    await wait(1800);
+    handleEvent({ type: "queue", ahead: 0 });
+  }
+  handleEvent({ type: "step", step: "read", state: "active" });
+  await pause();
+  handleEvent({ type: "step", step: "read", state: "done" });
+  handleEvent({ type: "step", step: "convert", state: "active" });
+  await pause();
+  handleEvent({ type: "step", step: "convert", state: "done" });
+  handleEvent({ type: "step", step: "upload", state: "active" });
+  await pause();
+  if (mode === "error") {
+    handleEvent({ type: "step", step: "upload", state: "error" });
+    handleEvent({ type: "error", message: "Moxfield didn't accept the deck right now. Please try again in a few minutes." });
+    return;
+  }
+  handleEvent({ type: "step", step: "upload", state: "done" });
+  handleEvent({ type: "result", deck: DEMO_DECK });
+}
+
+// ---------- Submit ----------
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (running) return;
+  const link = urlInput.value.trim();
+  if (!LINK_PATTERN.test(link)) {
+    formError.textContent = "Paste a deck link from Archidekt or ManaBox.";
+    urlInput.setAttribute("aria-invalid", "true");
+    return;
+  }
+  formError.textContent = "";
+  urlInput.removeAttribute("aria-invalid");
+
+  resetView();
+  progress.hidden = false;
+  setRunning(true);
+
+  try {
+    if (DEMO) await runDemo(DEMO); else await runReal(link);
+  } catch (err) {
+    // fall through to the generic message below
+  }
+  // The stream ended without a result or an error
+  if (!finished) showError(GENERIC_ERROR);
+});
+
+// Clear the error as soon as the user edits
+urlInput.addEventListener("input", () => {
+  formError.textContent = "";
+  urlInput.removeAttribute("aria-invalid");
+});
+
+// ---------- Buttons ----------
+$("another").addEventListener("click", () => {
+  resetView();
+  urlInput.value = "";
+  urlInput.focus();
+});
+retryBtn.addEventListener("click", () => {
+  resetView();
+  urlInput.focus();
+  urlInput.select();
+});
+
+$("copy").addEventListener("click", async () => {
+  const text = $("linkText").textContent;
+  const btn = $("copy");
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(text);
+    ok = true;
+  } catch (e) {
+    // Fallback: select the link text so the user can copy it by hand
+    const range = document.createRange();
+    range.selectNodeContents($("linkText"));
+    const sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
+  }
+  btn.textContent = ok ? "Copied" : "Press Ctrl+C";
+  clearTimeout(copyTimer);
+  copyTimer = setTimeout(() => { btn.textContent = "Copy link"; }, 2000);
+});
+</script>
+</body>
+</html>
