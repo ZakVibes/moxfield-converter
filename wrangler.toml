@@ -1,5 +1,5 @@
 # Cloudflare settings for the helper server. Cloudflare reads this file when it
-# deploys from GitHub. Secrets (MOX_USER_AGENT, MOX_REFRESH_COOKIE) are NOT in
+# deploys from GitHub. Secrets (MOX_USER_AGENT, MOX_REFRESH_COOKIE, IP_SALT) are NOT in
 # here - they live only in Cloudflare's dashboard.
 name = "moxfield-converter"
 main = "worker/index.js"

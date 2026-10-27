@@ -2,8 +2,8 @@
 
 export const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Hex SHA-256 of a string (used to fingerprint the cookie secret and to avoid
-// storing raw IP addresses).
+// Hex SHA-256 of a string (used to fingerprint the cookie secret and, with a
+// secret salt, to avoid storing raw IP addresses).
 export async function sha256Hex(text) {
   const bytes = new TextEncoder().encode(String(text));
   const digest = await crypto.subtle.digest("SHA-256", bytes);

@@ -138,7 +138,9 @@ async function convert(env, ip, bodyText, send) {
     }
   }
 
-  const ipHash = await sha256Hex(ip);
+  // Mixed with the secret IP_SALT first, so nobody can recover an address by hashing
+  // all ~4 billion possible IPs and comparing. (Without the secret it still works, unsalted.)
+  const ipHash = await sha256Hex(`${env.IP_SALT || ""}|${ip}`);
   const limit = await gate.checkLimit(ipHash, dryRun ? "dry" : "real", dryRun);
   if (!limit.ok) throw new UserError(limit.message);
 
