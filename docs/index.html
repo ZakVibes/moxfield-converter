@@ -255,9 +255,11 @@ footer a { color: inherit; }
 "use strict";
 
 // ---------- Settings ----------
-// Server address. For testing, add ?api=<url> to the page address.
+// Server address. For testing, add ?api=<url> to the page address (only works on this computer,
+// so nobody can send people a link that points the page at someone else's server).
 const params = new URLSearchParams(location.search);
-const API = params.get("api") || "https://moxfield-converter.zakvibes.workers.dev";
+const LOCAL = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+const API = (LOCAL && params.get("api")) || "https://moxfield-converter.zakvibes.workers.dev";
 // Demo mode: ?demo, ?demo=ok, ?demo=error, ?demo=slow
 const DEMO = params.has("demo") ? (params.get("demo") || "ok") : null;
 
@@ -359,9 +361,10 @@ function showResult(deck) {
   img.onerror = () => { art.hidden = true; };
   if (deck.artUrl) img.src = deck.artUrl; else img.removeAttribute("src");
 
-  // Links
-  $("openLink").href = deck.url || "#";
-  $("linkText").textContent = deck.url || "";
+  // Links: only ever a Moxfield address
+  const url = /^https:\/\/(www\.)?moxfield\.com\//i.test(deck.url || "") ? deck.url : "";
+  $("openLink").href = url || "#";
+  $("linkText").textContent = url;
   $("copy").textContent = "Copy link";
 
   // Cards Moxfield didn't know
