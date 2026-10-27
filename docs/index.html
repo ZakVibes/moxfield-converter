@@ -161,6 +161,11 @@ button:disabled, input:disabled { opacity: .6; cursor: not-allowed; }
   padding: 11px 20px; border-radius: 8px; background: var(--btn); color: var(--btn-text);
 }
 .link-text { margin: 12px 0 0; font-size: 14px; color: var(--muted); overflow-wrap: anywhere; }
+/* "Duplicate it to edit" hint under the link */
+.tip {
+  margin: 14px 0 0; padding: 10px 14px; font-size: 14px;
+  background: var(--input-bg); border: 1px solid var(--card-border); border-left: 4px solid var(--btn); border-radius: 8px;
+}
 .warn { color: var(--warn); margin: 14px 0 0; }
 details { margin-top: 6px; font-size: 15px; }
 summary { cursor: pointer; color: var(--warn); }
@@ -231,6 +236,7 @@ footer a { color: inherit; }
         <button type="button" class="secondary" id="copy">Copy link</button>
       </div>
       <p class="link-text" id="linkText"></p>
+      <p class="tip"><strong>Want to make changes?</strong> This deck lives on our account, so you can't edit it directly. Open it on Moxfield, hit <strong>Duplicate</strong>, and save the copy to your own profile. Then it's yours to edit.</p>
       <div id="notFoundBox" hidden>
         <p class="warn" id="notFoundHead"></p>
         <details><summary>Show the list</summary><ul id="notFoundList"></ul></details>
